@@ -16,7 +16,7 @@ class VideoAlignmentLoader(Dataset):
     def __init__(self, cfg, get_annotation=False):
         self.cfg = cfg
         self.get_annotation = get_annotation
-        videos_dir = self.cfg.TCC.DATA_PATH
+        videos_dir = self.cfg.VAOT.DATA_PATH
         if self.get_annotation:
             # Load the annotations
             category_id = videos_dir.split('/')[0]
@@ -39,34 +39,61 @@ class VideoAlignmentLoader(Dataset):
         self.video_paths = [
             os.path.join(videos_dir, item) for item in videos_names
         ]
-        self.num_frames = self.cfg.TCC.NUM_FRAMES
-        self.num_context_steps = self.cfg.TCC.NUM_CONTEXT_STEPS
+        self.num_frames = self.cfg.VAOT.NUM_FRAMES
+        self.num_context_steps = self.cfg.VAOT.NUM_CONTEXT_STEPS
         # Number of frames to sample per video (including the context frames)
         self.frames_per_video = self.num_frames * self.num_context_steps
 
+        if cfg.DATA_LOADER.NAME == 'CMU_Kitchens':
+            self.FRAMES_DIR = self.cfg.CMU_KITCHENS.FRAMES_PATH
+        elif cfg.DATA_LOADER.NAME == 'EGTEA_GazeP':
+            self.FRAMES_DIR = self.cfg.EGTEA_GAZEP.FRAMES_PATH
+        elif cfg.DATA_LOADER.NAME == 'MECCANO':
+            self.FRAMES_DIR = self.cfg.MECCANO.FRAMES_DIR
+        elif cfg.DATA_LOADER.NAME == 'EPIC-Tents':
+            self.FRAMES_DIR = self.cfg.TENTS.FRAMES_DIR
+        elif cfg.DATA_LOADER.NAME == 'ProceL':
+            self.FRAMES_DIR = self.cfg.PROCEL.FRAMES_PATH
+        elif cfg.DATA_LOADER.NAME == 'CrossTask':
+            self.FRAMES_DIR = self.cfg.CROSSTASK.FRAMES_PATH
+        elif cfg.DATA_LOADER.NAME == 'pc_assembly':
+            self.FRAMES_DIR = self.cfg.PCASSEMBLY.FRAMES_DIR
+        elif cfg.DATA_LOADER.NAME == 'pc_disassembly':
+            self.FRAMES_DIR = self.cfg.PCDISASSEMBLY.FRAMES_DIR
+        else:
+            raise NotImplementedError
+
     def __len__(self):
-        return self.cfg.TCC.BATCH_SIZE
+        return self.cfg.VAOT.BATCH_SIZE
 
     def __getitem__(self, idx):
-        assert self.cfg.TCC.BATCH_SIZE < len(self.video_paths)
+        assert self.cfg.VAOT.BATCH_SIZE == 2    # YOU MUST KEEP IT AT 2 WHEN RUNNING VAOT
+        assert self.cfg.VAOT.BATCH_SIZE < len(self.video_paths)
+        # Randomly select a batch of videos from the available video paths
         selected_videos = random.sample(
             self.video_paths,
-            self.cfg.TCC.BATCH_SIZE
+            self.cfg.VAOT.BATCH_SIZE
         )
         final_frames = list()
         seq_lens = list()
         steps = list()
         if self.get_annotation:
             annotations = list()
+        # Iterate through the selected batch of videos
         for video in selected_videos:
+            # Use CV2 to get the no. of frames in the video
             video_frames_count = self.get_num_frames(video)
+            # Sample frames from the video and return their frame indices: 
+            # selected_frames includes the main and context frames, main_frames doesn't include the context frames
             main_frames, selected_frames = self.get_frame_sequences(
                 video_frames_count
             )
+            # Extract and resize ALL the frames from the video, store in a h5 file, and return its filename 
             h5_file_name = _extract_frames_h5py(
                 video,
-                self.cfg.CMU_KITCHENS.FRAMES_PATH
+                self.FRAMES_DIR
             )
+            # Read the saved h5 file and extract ONLY the sampled frames, resize and normalize, return the list of frames
             frames = self.get_frames_h5py(
                 h5_file_name,
                 selected_frames,
@@ -89,6 +116,10 @@ class VideoAlignmentLoader(Dataset):
                 np.array(seq_lens),
                 np.vstack(annotations),
             )
+        # return a tuple of 3 numpy arrays:
+        # frames: (batch_size, num_sampled_frames[main+context], 168, 168, 3)
+        # frame indices: (batch_size, num_sampled_frames[main])
+        # no. of frames in the videos: (batch_size,)
         return (
             np.concatenate(final_frames),
             np.concatenate(steps),
@@ -138,6 +169,7 @@ class VideoAlignmentLoader(Dataset):
             video_frames_count (int): Number of frames in the video.
         """
         # Selecting the frames at random
+        # BUG: This will throw an exception if the video is too short or if we sample a large no. of frames, both are unlikely for our project, the solution for this would be masks like in VAOT
         main_frames = sorted(
             random.sample(range(video_frames_count), self.num_frames)
         )
@@ -147,7 +179,7 @@ class VideoAlignmentLoader(Dataset):
             w_context_frames.append(frame)
             for i in range(self.num_context_steps - 1):
                 context_frame_count = frame + (
-                    (i + 1) * self.cfg.TCC.CONTEXT_STRIDE
+                    (i + 1) * self.cfg.VAOT.CONTEXT_STRIDE
                 )
                 if context_frame_count >= video_frames_count - 1:
                     context_frame_count -= video_frames_count - 2

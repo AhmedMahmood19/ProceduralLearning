@@ -15,21 +15,24 @@ from sklearn.cluster import MiniBatchKMeans
 import utils.logger as logging
 from RepLearn.TCC.models import Embedder
 from evaluate.metrics import compute_align_MoF_UoI
-
+from VAOT.VAOT_embedder import AlignNet
 
 logger = logging.get_logger(__name__)
 
 
 def get_model(cfg):
-    model = Embedder(cfg.TCC.EMBEDDING_SIZE, cfg.TCC.NUM_CONTEXT_STEPS, cfg=cfg)
+    # BUG add a flag to the config later, so it can be used here to decide which model to use
+    # commenting out the TCC embedder for now and replacing it with the VAOT embedder
+    # model = Embedder(cfg.TCC.EMBEDDING_SIZE, cfg.TCC.NUM_CONTEXT_STEPS, cfg=cfg)
+    model = AlignNet(cfg=cfg)
     return model
 
 
 def get_optimizer(model, cfg):
     optimizer = optim.Adam(
-        model.parameters(),
-        lr=cfg.TCC.LR,
-        weight_decay=cfg.TCC.WEIGHT_DECAY
+        filter(lambda p: p.requires_grad, model.parameters()),
+        lr=cfg.VAOT.LR,
+        weight_decay=cfg.VAOT.WEIGHT_DECAY
     )
     return optimizer
 
@@ -48,7 +51,8 @@ def get_embds(
     frames_per_batch,
     num_context_steps,
     context_stride,
-    video_name
+    video_name,
+    device
 ):
     embds = []
     num_batches = int(np.ceil(float(seq_len)/frames_per_batch))
@@ -73,7 +77,7 @@ def get_embds(
         frames = torch.from_numpy(
             frames.numpy()
         ).permute(0, 1, 4, 2, 3)
-        output = model(frames.to('cuda:1'))
+        output = model(frames.to(device))
         embds.extend(output.detach().cpu().numpy())
     embds = np.concatenate(embds, axis=0)
     embds = embds[:seq_len]
@@ -100,7 +104,7 @@ def graphcut_segmentation(cfg, features, alpha=7, beta=0.2):
     """
     logger.critical('Running Fuzzy CMeans...')
     start = time.time()
-    fuzzy_cmeans = FCM(n_clusters=cfg.TCC.KMEANS_NUM_CLUSTERS)
+    fuzzy_cmeans = FCM(n_clusters=cfg.VAOT.KMEANS_NUM_CLUSTERS)
     fuzzy_cmeans.fit(features)
     logger.debug(
         f'Clustering done. Time taken {np.round(time.time() - start, 3)}'
@@ -111,7 +115,7 @@ def graphcut_segmentation(cfg, features, alpha=7, beta=0.2):
     cluster_probs_ = np.ones(cluster_probs.shape) - cluster_probs
     cluster_probs_ = cfg.REP_LEARN.GRAPH_CUT_BETA * cluster_probs_
     # Calculating the cost of assigning different labels to neighbors
-    L = cfg.TCC.KMEANS_NUM_CLUSTERS
+    L = cfg.VAOT.KMEANS_NUM_CLUSTERS
     levs = np.arange(0.5/L, 1, 1/L)
     V = cfg.REP_LEARN.GRAPH_CUT_ALPHA * np.abs(levs.reshape((-1, 1)) - \
         levs.reshape((1, -1)))
@@ -127,7 +131,7 @@ def graphcut_segmentation(cfg, features, alpha=7, beta=0.2):
 
 def random_segmentation(cfg, features):
     logger.critical('Generating random predictions...')
-    L = cfg.TCC.KMEANS_NUM_CLUSTERS
+    L = cfg.VAOT.KMEANS_NUM_CLUSTERS
     random_predictions = np.random.randint(L, size=(features.shape[0],))
     return random_predictions
 
@@ -137,7 +141,7 @@ def run_kmeans(cfg, features):
     logger.critical('Running KMeans...')
     start = time.time()
     kmeans = MiniBatchKMeans(
-        n_clusters=cfg.TCC.KMEANS_NUM_CLUSTERS,
+        n_clusters=cfg.VAOT.KMEANS_NUM_CLUSTERS,
         init='k-means++',
         max_no_improvement=None
     ).fit(features)
@@ -162,7 +166,7 @@ def gen_print_results(
         pred,
         gt,
         num_keysteps + 1,
-        M=cfg.TCC.KMEANS_NUM_CLUSTERS,
+        M=cfg.VAOT.KMEANS_NUM_CLUSTERS,
         per_keystep=per_keystep
     )
     if video_name:
@@ -174,7 +178,7 @@ def gen_print_results(
                 pred,
                 gt,
                 num_keysteps + 1, 
-                M = cfg.TCC.KMEANS_NUM_CLUSTERS,
+                M = cfg.VAOT.KMEANS_NUM_CLUSTERS,
                 per_keystep=per_keystep,
                 return_assignments=return_assignments
             )
@@ -182,8 +186,9 @@ def gen_print_results(
         return recall, precision, IoU
     else:
         logger.critical(
-            f"Overall Results. Precision: {precision}, Recall: {recall}, IOU: "
-            f"{IoU}, Step wise Results: {step_wise_metrics}")
+            f"Overall Results. F1: {(2 * precision * recall) / (precision + recall)}, IOU: {IoU}, "
+            f"Precision: {precision}, Recall: {recall}, Step wise Results: {step_wise_metrics}")
+        logger.critical(f"Overall Rounded Results. F1: {round((2 * precision * recall) / (precision + recall) * 100, 2)}, IOU: {round(IoU * 100, 2)}")
         if len(cfg.LOG.SAVE_CUMULATIVE_RESULTS) > 0 and cfg.LOG.DIR is not None:
             # Saving the overall results to make the experimentation process
             # faster

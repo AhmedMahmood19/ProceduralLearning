@@ -4,6 +4,7 @@ from torch.nn import functional as F
 from scipy.spatial.distance import cdist
 
 from RepLearn.TCC.utils import get_lav_weights, generate_unique_video_steps
+from VAOT import asot
 
 
 def calculate_similarity(embeddings1, embeddings2, temperature):
@@ -201,3 +202,52 @@ def temporal_cycle_consistency_loss(
         return cfg.LAV.CONTRIB_PERCENT * contrastive_loss + loss
 
     return loss
+
+def vaot_loss(embs, config):
+    # This function MUST recieve embs of shape (batch_size=2, num_main_frames, embedding_size)
+    features_X, features_Y = torch.split(embs, 1, dim=0)
+
+    T_X = features_X.shape[1]
+    T_Y = features_Y.shape[1]
+    # Eq (6)
+    # codes represent a matrix P for each batch element
+    # size of a matrix P is (no. of frames in X x no. of frames in Y)
+    # P_ij represents the prob. of the frame_i in X being aligned with the frame_j in Y
+    codes = torch.exp(features_X @ features_Y.transpose(1, 2) / config.VAOT.temp)
+    codes = codes / codes.sum(dim=-1, keepdim=True)
+
+    # Produce pseudo-labels using ASOT, note that we don't backpropagate through this part
+    with torch.no_grad():
+        # Calculate the KOT cost matrix from the paragraph above Eq (7)
+        # ρR = rho * Temporal prior
+        temp_prior = asot.temporal_prior(T_X, T_Y, config.VAOT.rho, features_X.device)
+        # Cost Matrix Ck from section 4.2, no need to divide by norms since both vectors were previously normalized with F.normalize()
+        cost_matrix = 1. - features_X @ features_Y.transpose(1, 2)
+        # Ĉk = Ck + ρR
+        cost_matrix += temp_prior
+
+
+        ## Added for virtual frames
+        B, N, K = cost_matrix.shape
+        dev = cost_matrix.device
+        top_row = torch.ones(B, 1, K).to(dev) * config.VAOT.zeta
+        cost_matrix = torch.cat((top_row, cost_matrix), dim=1)
+        left_column = torch.ones(B, N + 1, 1).to(dev) * config.VAOT.zeta
+        cost_matrix = torch.cat((left_column, cost_matrix), dim=2)
+
+
+        # opt_codes represent a matrix Tb for each batch element
+        # size of a matrix Tb is (no. of frames in X x no. of frames in Y)
+        # Tb are the (soft) pseudo-labels defined above Eq (7)
+        # Tb_ij represents the prob. of the frame_i in X being aligned with the frame_j in Y
+        opt_codes, _ = asot.segment_asot(cost_matrix=cost_matrix,
+                                            eps=config.VAOT.train_eps, alpha=config.VAOT.alpha_train, radius=config.VAOT.radius_gw,
+                                            ub_frames=config.VAOT.ub_frames, ub_actions=config.VAOT.ub_actions,
+                                            lambda_frames=config.VAOT.lambda_frames_train,
+                                            lambda_actions=config.VAOT.lambda_actions_train,
+                                            n_iters=config.VAOT.n_ot_train, step_size=config.VAOT.step_size)
+
+    # Eq (7)
+    # Modified version that doesn't use mask_X and mask_Y
+    loss_ce = -((opt_codes * torch.log(codes + config.VAOT.num_eps))).sum(dim=2).mean()
+    return loss_ce

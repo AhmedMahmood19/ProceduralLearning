@@ -142,6 +142,39 @@ _C.EGTEA_GAZEP.ANNS_PATH = "/scratch/sid/EGTEA-GAZE-PLUS/annotations"
 _C.EGTEA_GAZEP.FRAMES_PATH = "/ssd_scratch/cvit/sid/EGTEA-GAZE-PLUS/frames"
 
 # -----------------------------------------------------------------------------
+# VAOT options
+# -----------------------------------------------------------------------------
+_C.VAOT = CfgNode()
+
+_C.VAOT.DATA_PATH = "/videos/datasetname"   # Path to the directory containing videos for training
+_C.VAOT.NUM_FRAMES = 32 # Number of frames to sample from each video while training
+_C.VAOT.TRAIN_EPOCHS = 10000
+_C.VAOT.NORMALIZE_EMBDS = True
+_C.VAOT.EMBEDDING_SIZE = 128
+_C.VAOT.NUM_CONTEXT_STEPS = 2
+_C.VAOT.CONTEXT_STRIDE = 15
+_C.VAOT.LR = 1e-4
+_C.VAOT.WEIGHT_DECAY = 1e-5
+_C.VAOT.BATCH_SIZE = 2  # YOU MUST KEEP IT AT 2 WHEN RUNNING VAOT
+_C.VAOT.EMBDS_BATCH = 130
+_C.VAOT.GRAPH_CUT = True    # Since we want to use graph cut algo for our model
+_C.VAOT.KMEANS_NUM_CLUSTERS = 7 # No. of keysteps K in paper
+
+_C.VAOT.temp = 0.1
+_C.VAOT.rho = 0.35
+_C.VAOT.zeta = 0.50
+_C.VAOT.train_eps = 0.07
+_C.VAOT.alpha_train = 0.3
+_C.VAOT.radius_gw = 0.02
+_C.VAOT.ub_frames = False
+_C.VAOT.ub_actions = False
+_C.VAOT.lambda_frames_train = 0.05
+_C.VAOT.lambda_actions_train = 0.05
+_C.VAOT.n_ot_train = [25, 1]
+_C.VAOT.step_size = None
+_C.VAOT.num_eps = 1e-11
+
+# -----------------------------------------------------------------------------
 # TCC options
 # -----------------------------------------------------------------------------
 _C.TCC = CfgNode()
@@ -179,9 +212,9 @@ _C.TCC.VARIANCE_LAMBDA = 1e-3
 # Normalize video step indices for numerical stability
 _C.TCC.NORMALIZE_INDICES = True
 
-# If true, normalise the embeddings when calculating the procedure
-# learning results
-_C.TCC.NORMALIZE_EMBDS = True
+# If true, normalise the embeddings when calculating the procedure learning results
+# Since TCC doesn't use normalized embds, only LAV does
+_C.TCC.NORMALIZE_EMBDS = False
 
 # Optimizer for TCC
 _C.TCC.OPTIM_NAME = "Adam"
@@ -241,7 +274,7 @@ _C.TCC.TCC_AND_LAV = False
 _C.TCC.RANDOM_RESULTS = False
 
 # Directory to save the embeddings
-_C.TCC.EMBDS_DIR = '/ssd_scratch/cvit/sid/embeddings/'
+_C.TCC.EMBDS_DIR = './embeddings/'
 
 # -----------------------------------------------------------------------------
 # LAV options

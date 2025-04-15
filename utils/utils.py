@@ -1,6 +1,6 @@
 
 import os
-
+import sys
 import cv2
 import h5py
 import numpy as np
@@ -91,10 +91,12 @@ def get_category_metadata(cfg, metadata=None):
 def _extract_frames_h5py(video_path, frames_path):
     videocap = cv2.VideoCapture(video_path)
     video_name = video_path.split('/')[-1].split('.')[0]
+    os.makedirs(frames_path, exist_ok=True)
     h5_file_path = os.path.join(frames_path, f'{video_name}.h5')
     if os.path.isfile(h5_file_path):
         return h5_file_path
-    h5_file = h5py.File(h5_file_path, "w")
+    else:
+        print("Saving",h5_file_path,"...")
     frames = list()
     desired_shorter_side = 384
     while videocap.isOpened():
@@ -131,7 +133,9 @@ def _extract_frames_h5py(video_path, frames_path):
             )
             frames.append(frame)
     videocap.release()
+    assert len(frames) != 0, f"Error: No frames were extracted from {video_path}. Please check the video file for issues such as GoPro TCD/GoPro SOS metadata streams."
     frames_npy = np.array(frames)
+    h5_file = h5py.File(h5_file_path, "w")
     dataset = h5_file.create_dataset(
         "images",
         np.shape(frames_npy),
