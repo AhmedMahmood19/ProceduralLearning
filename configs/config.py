@@ -63,7 +63,8 @@ _C.DATA_LOADER.RESIZE = 256
 _C.DATA_LOADER.CROP_SIZE = 224
 
 # Load data to pinned host memory
-_C.DATA_LOADER.PIN_MEMORY = True
+# BUG: Setting this to False reduced the RAM usage, which was causing issues when training EPIC_Tents specifically 
+_C.DATA_LOADER.PIN_MEMORY = False
 
 # Shuffle the data
 _C.DATA_LOADER.SHUFFLE = True

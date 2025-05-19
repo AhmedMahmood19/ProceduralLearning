@@ -57,8 +57,7 @@ def main(cfg):
 
     # model
     model = get_model(cfg)
-    # BUG: Temporarily disabled to try training on a single gpu only
-    # model = torch.nn.DataParallel(model, device_ids=[0, 1])
+    model = torch.nn.DataParallel(model, device_ids=[0, 1])
     model = model.to(device)
     optimizer = get_optimizer(model, cfg)
 

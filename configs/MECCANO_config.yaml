@@ -1,17 +1,17 @@
 ANNOTATION:
-  DATASET_NAME: 'pc_disassembly'
+  DATASET_NAME: 'MECCANO'
 
-PCDISASSEMBLY:
+MECCANO:
   # Path to the directory containing the videos
-  VIDEOS_DIR: '/media/retrocausal-train/Extreme SSD1/Egoprocel/videos/pc_disassembly'
+  VIDEOS_DIR: '/media/retrocausal-train/Extreme SSD1/Egoprocel/videos/MECCANO'
   # Path to the directory for saving the frames
-  FRAMES_DIR: './pc-disassembly-frames'
+  FRAMES_DIR: './MECCANO-frames'
   # Path to the directory contatining the annotations
-  ANNS_DIR: '/media/retrocausal-train/Extreme SSD1/Egoprocel/annotations/pc_disassembly'
+  ANNS_DIR: '/media/retrocausal-train/Extreme SSD1/Egoprocel/annotations/MECCANO'
 
 DATA_LOADER:
 # Set with the dataset you are currently using
-  NAME: 'pc_disassembly'
+  NAME: 'MECCANO'
 # Number of data loader workers per training process CHANGED FROM 4 TO 0
   NUM_WORKERS: 0
 # CHANGED FROM TRUE TO FALSE
@@ -28,7 +28,7 @@ LOG:
 
 VAOT:
   # Path to the directory containing videos for training
-  DATA_PATH: '/media/retrocausal-train/Extreme SSD/Egoprocel/videos/pc_disassembly'
+  DATA_PATH: '/media/retrocausal-train/Extreme SSD1/Egoprocel/videos/MECCANO'
 
 LAV:
   # The final loss combines both TCC and C-IDM (referred to as TC3I loss)

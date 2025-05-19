@@ -1,0 +1,62 @@
+ANNOTATION:
+  DATASET_NAME: 'CMU_KITCHENS'
+  CATEGORY: Pizza
+
+CMU_KITCHENS:
+  METADATA_FILE: '/home/retrocausal-train/Desktop/Procedural-Learning/EgoProceL-egocentric-procedure-learning/annotations/metadata/CMU_Kitchens/tasks.txt'
+  # Path to the directory containing the videos
+  VIDEOS_PATH: '/home/retrocausal-train/Desktop/Procedural-Learning/CMU_Kitchens/videos'
+  # Path to the directory for saving the frames
+  FRAMES_PATH: '/home/retrocausal-train/Desktop/Procedural-Learning/CMU_Kitchens/frames'
+  # Path to the directory contatining the annotations
+  ANNS_PATH: '/home/retrocausal-train/Desktop/Procedural-Learning/CMU_Kitchens/annotations'
+  # Name of the category for which we want to do the experiments
+  # CATEGORY: 'brownie'
+  VIEW: ego
+
+DATA_LOADER:
+# Set with the dataset you are currently using
+  NAME: 'CMU_Kitchens'
+# Number of data loader workers per training process CHANGED FROM 4 TO 0
+  NUM_WORKERS: 0
+# CHANGED FROM TRUE TO FALSE
+  SHUFFLE: False
+
+MISC:
+  # Print detailed output of steps taking place
+  VERBOSE: True
+
+LOG:
+  # Path to the directory to save all the outputs from an experiment (including
+  # visualisations, logs, results, etc.)
+  DIR: ./logs3
+
+VAOT:
+  # Path to the directory containing videos for training
+  DATA_PATH: '/home/retrocausal-train/Desktop/Procedural-Learning/CMU_Kitchens/videos/58350_7150991'
+
+# TCC:
+# #   # Path to the directory containing videos for training
+#   DATA_PATH: '/home/retrocausal-a-100/Fawad_Umer/ProceL/videos/assemble_clarinet'
+#   TRAIN_EPOCHS: 10000
+#   KMEANS_NUM_CLUSTERS: 30
+#   BATCH_SIZE: 2
+#   NUM_FRAMES: 32
+#   NUM_CONTEXT_STEPS: 2
+#   CONTEXT_STRIDE: 15
+#   LSTM: False
+#   BILSTM: False
+#   EMBDS_DIR: '/home/retrocausal-a-100/Fawad_Umer/EgoProceL-egocentric-procedure-learning/embeddings'
+
+LAV:
+  # The final loss combines both TCC and C-IDM (referred to as TC3I loss)
+  # If true, use Contrastive-IDM loss for training along with TCC
+  USE_CIDM: True
+  # (Regularization parameter) Contribution percent of temporal regularisation when adding with TCC
+  #IT SHOULD BE CONTRIB_PERCENT: 1.0 acc to paper not 0.1
+  CONTRIB_PERCENT: 1.0
+
+  # Window size, Default to 10 seconds (30 fps) for CMU Kitchens
+  SIGMA: 300.0
+  # Margin
+  LAMBDA: 2.0
