@@ -7,6 +7,7 @@ import tqdm
 import torch
 import numpy as np
 from torch import optim
+import torch.nn.functional as F
 import tensorflow as tf
 from fcmeans import FCM
 from maxflow.fastmin import aexpansion_grid
@@ -43,7 +44,10 @@ def save_checkpoint(state, logdir, filename='checkpoint.pt'):
     path = os.path.join(logdir, filename)
     torch.save(state, path)
 
-
+'''
+This is the original function from CnC Repo that uses tf, 
+it takes too much memory and takes too long
+'''
 def get_embds(
     model,
     video,
@@ -83,6 +87,71 @@ def get_embds(
     embds = embds[:seq_len]
     assert len(embds) == seq_len
     return embds
+
+'''
+This is my implementation of the function that uses torch, 
+it takes much less memory and computes quickly
+I compared the embds of a MECCANO video produced by both functions and the difference was negligible,
+results shown below:
+Mean Squared Error (MSE) for full embeddings: 9.21002296649931e-09
+Cosine Similarity for full embeddings: 0.9999982118606567
+Shape of f1_embds: (10995, 128)
+Shape of f2_embds: (10995, 128)
+'''
+# def get_embds(
+#     model,
+#     video,
+#     seq_len,
+#     frames_per_batch,
+#     num_context_steps,
+#     context_stride,
+#     video_name,
+#     device
+# ):
+#     # We will break the frames of the video into batches, pass a batch of frames to the encoder, then append the output batch of embeddings to embds
+#     embds = []
+#     # no. of batches = no. of frames / frames per batch
+#     num_batches = int(np.ceil(float(seq_len) / frames_per_batch))
+
+#     # Iterate through the batches
+#     for i in tqdm.tqdm(range(num_batches), desc=video_name):
+#         # steps are the frame indices for this batch
+#         steps = np.arange(i * frames_per_batch, (i + 1) * frames_per_batch)
+#         steps = np.clip(steps, 0, seq_len - 1)
+
+#         # Using the steps, compute the context frame indices, store the frame+context_frame indices into context_steps
+#         context_steps = []
+#         for step in steps:
+#             ctx = np.arange(
+#                 step - (num_context_steps - 1) * context_stride,
+#                 step + context_stride,
+#                 context_stride
+#             )
+#             ctx = np.clip(ctx, 0, seq_len - 1)
+#             context_steps.append(ctx)
+        
+#         context_steps = np.array(context_steps, dtype=np.long)  # Convert to a NumPy array
+#         steps_with_context = torch.tensor(context_steps).view(-1)  # Convert to a tensor and flatten
+
+#         frames = video[steps_with_context].float()
+#         frames = (frames / 127.5) - 1.0
+
+#         frames = frames.permute(0, 3, 1, 2).unsqueeze(0)  # (1, T, C, H, W)
+
+#         B, T, C, H, W = frames.shape
+#         frames = frames.view(B * T, C, H, W)
+#         frames = F.interpolate(frames, size=(168, 168), mode='bilinear', align_corners=False)
+#         frames = frames.view(B, T, C, 168, 168)
+
+#         with torch.no_grad():
+#             output = model(frames.to(device))
+#             embds.append(output.cpu())
+
+#     embds = torch.cat(embds, dim=1)
+#     embds = embds[0, :seq_len].numpy()
+
+#     assert len(embds) == seq_len
+#     return embds
 
 
 def graphcut_segmentation(cfg, features, alpha=7, beta=0.2):
