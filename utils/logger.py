@@ -42,11 +42,13 @@ def setup_logging(output_dir=None, level='info', bypass=False):
             if not bypass:
                 logger.critical(f'{output_dir} exists. Performing the same '
                                 'experiment again?')
-                cont = input('Continue? (y/n) ')
-                if cont == 'y':
-                    pass
-                else:
-                    raise Exception('Ouch!')
+                # cont = input('Continue? (y/n) ')
+                # if cont == 'y':
+                #     pass
+                # else:
+                #     raise Exception('Ouch!')
+
+                cont = 'y'
         filename = os.path.join(output_dir, 'logs.log')
         fh = logging.FileHandler(filename)
         fh.setLevel(logger_level)

@@ -3,11 +3,13 @@ ANNOTATION:
 
 MECCANO:
   # Path to the directory containing the videos
-  VIDEOS_DIR: '/media/retrocausal-train/Extreme SSD1/Egoprocel/videos/MECCANO'
+  VIDEOS_DIR: '/home/retrocausal-train/Desktop/Procedural-Learning/EGOPROCEL-INTERNAL/videos/MECCANO'
+  # VIDEOS_DIR: '/media/retrocausal-train/Extreme SSD1/Egoprocel/videos/MECCANO'
   # Path to the directory for saving the frames
   FRAMES_DIR: './MECCANO-frames'
   # Path to the directory contatining the annotations
-  ANNS_DIR: '/media/retrocausal-train/Extreme SSD1/Egoprocel/annotations/MECCANO'
+  ANNS_DIR: '/home/retrocausal-train/Desktop/Procedural-Learning/EGOPROCEL-INTERNAL/annotations/MECCANO'
+  # ANNS_DIR: '/media/retrocausal-train/Extreme SSD1/Egoprocel/annotations/MECCANO'
 
 DATA_LOADER:
 # Set with the dataset you are currently using
@@ -28,7 +30,8 @@ LOG:
 
 VAOT:
   # Path to the directory containing videos for training
-  DATA_PATH: '/media/retrocausal-train/Extreme SSD1/Egoprocel/videos/MECCANO'
+  DATA_PATH: '/home/retrocausal-train/Desktop/Procedural-Learning/EGOPROCEL-INTERNAL/videos/MECCANO'
+  # DATA_PATH: '/media/retrocausal-train/Extreme SSD1/Egoprocel/videos/MECCANO'
 
 LAV:
   # The final loss combines both TCC and C-IDM (referred to as TC3I loss)

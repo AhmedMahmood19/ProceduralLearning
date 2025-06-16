@@ -12,7 +12,7 @@ from torch.utils.tensorboard import SummaryWriter
 import utils.logger as logging
 from utils.parser import parse_args, load_config
 from RepLearn.TCC.datasets import VideoAlignmentLoader
-from RepLearn.TCC.losses import temporal_cycle_consistency_loss, vaot_loss
+from RepLearn.TCC.losses import temporal_cycle_consistency_loss, vaot_loss, vaot_loss_with_CIDM
 from RepLearn.TCC.utils import get_model, get_optimizer, save_checkpoint
 
 
@@ -71,9 +71,9 @@ def main(cfg):
         # (batch_size, num_frames, 168, 168, 3) changed to (batch_size, num_frames, 3, 168, 168)
         frames = frames.squeeze().permute(0, 1, 4, 2, 3).to(device)
         # (batch_size, num_main_frames)
-        steps = steps.squeeze()
+        steps = steps.squeeze().to(device)
         # (batch_size,)
-        seq_lens = seq_lens.squeeze()
+        seq_lens = seq_lens.squeeze().to(device)
 
         # Trick to save memory on GPU; referred from: https://towardsdatascienc
         # e.com/i-am-so-done-with-cuda-out-of-memory-c62f42947dca
@@ -81,6 +81,7 @@ def main(cfg):
             # (batch_size, num_main_frames, embedding_size) e.g. (2, 32, 128)
             embeddings = model(frames)
             loss = vaot_loss(embs=embeddings, config=cfg)
+            # loss = vaot_loss_with_CIDM(embs=embeddings, steps=steps, seq_lens=seq_lens, config=cfg)
 
         loss = loss.to(device)
         scaler.scale(loss / gradient_accumulations).backward()

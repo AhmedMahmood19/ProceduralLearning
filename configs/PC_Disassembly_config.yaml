@@ -3,11 +3,13 @@ ANNOTATION:
 
 PCDISASSEMBLY:
   # Path to the directory containing the videos
-  VIDEOS_DIR: '/media/retrocausal-train/Extreme SSD1/Egoprocel/videos/pc_disassembly'
+  VIDEOS_DIR: '/home/retrocausal-train/Desktop/Procedural-Learning/EGOPROCEL-INTERNAL/videos/pc_disassembly'
+  # VIDEOS_DIR: '/media/retrocausal-train/Extreme SSD1/Egoprocel/videos/pc_disassembly'
   # Path to the directory for saving the frames
   FRAMES_DIR: './pc-disassembly-frames'
   # Path to the directory contatining the annotations
-  ANNS_DIR: '/media/retrocausal-train/Extreme SSD1/Egoprocel/annotations/pc_disassembly'
+  ANNS_DIR: '/home/retrocausal-train/Desktop/Procedural-Learning/EGOPROCEL-INTERNAL/annotations/pc_disassembly'
+  # ANNS_DIR: '/media/retrocausal-train/Extreme SSD1/Egoprocel/annotations/pc_disassembly'
 
 DATA_LOADER:
 # Set with the dataset you are currently using
@@ -28,7 +30,8 @@ LOG:
 
 VAOT:
   # Path to the directory containing videos for training
-  DATA_PATH: '/media/retrocausal-train/Extreme SSD/Egoprocel/videos/pc_disassembly'
+  DATA_PATH: '/home/retrocausal-train/Desktop/Procedural-Learning/EGOPROCEL-INTERNAL/videos/pc_disassembly'
+  # DATA_PATH: '/media/retrocausal-train/Extreme SSD/Egoprocel/videos/pc_disassembly'
 
 LAV:
   # The final loss combines both TCC and C-IDM (referred to as TC3I loss)

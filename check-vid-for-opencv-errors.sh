@@ -3,7 +3,7 @@
 directory="/media/retrocausal-train/Extreme SSD/Egoprocel/videos/Epic-Tents"
 
 # Loop through all .mp4 files in the directory
-for file in "$directory"/*.MP4; do
+for file in "$directory"/*.mp4; do
     # Get stream information
     stream_info=$(ffmpeg -i "$file" 2>&1)
 

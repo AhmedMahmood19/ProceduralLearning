@@ -1,22 +1,14 @@
 
 import os
 import pickle
+# DE-BUG:
+import psutil,gc,sys
 
 # Must place this before import torch
 # Set the GPU device ID (e.g., 0 for the first GPU, 1 for the second, etc.)
 # GPU_ID = 1  # Change this to the desired GPU ID
 # os.environ["CUDA_VISIBLE_DEVICES"] = str(GPU_ID)
 
-import tensorflow as tf
-
-gpus = tf.config.experimental.list_physical_devices('GPU')
-if gpus:
-    try:
-        # Restrict TensorFlow to only use GPU 1
-        tf.config.experimental.set_visible_devices(gpus[1], 'GPU')
-        tf.config.experimental.set_memory_growth(gpus[1], True)
-    except RuntimeError as e:
-        print(e)
 
 
 import torch
@@ -118,6 +110,12 @@ def procedure_learning(cfg):
         video_name = video_name[0]
         num_frames = frames.shape[1]
         if not embeddings_present:
+            # DE-BUG:
+            # print("frames successfully sent to get_embds")
+            # # At this point memory has already increased alot
+            # process = psutil.Process(os.getpid())
+            # print(f"l127 [{video_name}] Memory: {process.memory_info().rss / 1024**2:.2f} MB")
+            
             embds = get_embds(
                     model,
                     frames.squeeze().permute(0, 2, 3, 1),
@@ -151,31 +149,36 @@ def procedure_learning(cfg):
                 'frames': frames
             }
 
-        # BUG: We don't care about these results
-        # else:
-            # # Evaluating at video level
-            # if cfg.VAOT.GRAPH_CUT:
-            #     kmeans_ind_preds = graphcut_segmentation(cfg, embds)
-            # elif cfg.TCC.RANDOM_RESULTS:
-            #     kmeans_ind_preds = random_segmentation(cfg, embds)
-            # else:
-            #     kmeans_ind_preds = run_kmeans(cfg, embds)
+        # BUG: We don't care about these results unless we're running for the high metric to compare with OPEL
+        else:
+            # Evaluating at video level
+            if cfg.VAOT.GRAPH_CUT:
+                kmeans_ind_preds = graphcut_segmentation(cfg, embds)
+            elif cfg.TCC.RANDOM_RESULTS:
+                kmeans_ind_preds = random_segmentation(cfg, embds)
+            else:
+                kmeans_ind_preds = run_kmeans(cfg, embds)
             
-            # recall, precision, iou, perm_gt, perm_pred = gen_print_results(
-            #     cfg,
-            #     label.squeeze(),
-            #     kmeans_ind_preds,
-            #     num_keysteps,
-            #     video_name,
-            #     return_assignments=True
-            # )
+            recall, precision, iou, perm_gt, perm_pred = gen_print_results(
+                cfg,
+                label.squeeze(),
+                kmeans_ind_preds,
+                num_keysteps,
+                video_name,
+                return_assignments=True
+            )
 
-            # average_iou.append(iou)
-            # average_recall.append(recall)
-            # average_precision.append(precision)
+            average_iou.append(iou)
+            average_recall.append(recall)
+            average_precision.append(precision)
 
         embeddings.append(embds)
         gt.extend(label.squeeze().cpu().numpy())
+
+        # DE-BUG:
+        # total_bytes = sum(arr.nbytes for arr in embeddings)
+        # total_mb = total_bytes / 1024**2        
+        # print(f"Memory used by {len(embeddings)} embeddings: {total_mb:.2f} MB")
 
         # BUG: We aren't using the frames so no reason to keep it in memory
         # all_frames.extend(frames)
@@ -222,11 +225,18 @@ def procedure_learning(cfg):
         num_keysteps,
         per_keystep=cfg.MISC.EVAL_PER_KEYSTEP,
     )
-    
-    # BUG: We don't care about these results
-    # logger.critical(f'Average precision: {np.mean(average_precision)} '
-    #         f'Average recall: {np.mean(average_recall)} '
-    #         f'Average IoU: {np.mean(average_iou)}')
+
+    Fscore = (np.mean(average_precision)*np.mean(average_recall)*2)/(np.mean(average_precision)+np.mean(average_recall))
+
+    logger.critical(
+            f'Average precision: {np.mean(average_precision)}, '
+            f'Average recall: {np.mean(average_recall)}, '
+            f'Average F1: {Fscore}, '
+            f'Average IoU: {np.mean(average_iou)} ')
+
+    logger.critical(
+            f'Rounded Average F1: {Fscore * 100:.2f}, '
+            f'Rounded Average IoU: {np.mean(average_iou) * 100:.2f} ')
 
     # BUG: We aren't saving the embeddings, since we use a diff model to make them each time we run eval
     # Saving the embeddings
