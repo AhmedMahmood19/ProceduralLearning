@@ -84,8 +84,9 @@ class VideoAlignmentLoader(Dataset):
             # Use CV2 to get the no. of frames in the video
             video_frames_count = self.get_num_frames(video)
 
-            #BUG: When using EpicTents, this video is corrupt so the video returns an incorrect framecount, we will use the framecount of the h5 file instead
-            if video=='/media/retrocausal-train/Extreme SSD/Egoprocel/videos/Epic-Tents/02.tent.120617.gopro.mp4':
+            #BUG: When using EPIC-Tents, this video is corrupt so the video returns an incorrect framecount, we will use the framecount of the h5 file instead
+            #BUG: Ignore these warnings: Invalid NAL unit size, Error splitting the input into NAL units.
+            if video.split('/')[-1][:-4]=='02.tent.120617.gopro':
                 video_frames_count = 41291
 
             # Sample frames from the video and return their frame indices: 
